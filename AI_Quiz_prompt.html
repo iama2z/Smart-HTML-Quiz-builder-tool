@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -57,7 +56,7 @@
             <!-- Generate Button -->
             <div class="text-center pt-8 mt-8 border-t">
                 <button id="generateBtn" class="bg-indigo-600 text-white font-bold py-3 px-8 rounded-lg hover:bg-indigo-700 transition-transform transform hover:scale-105">
-                    Generate Prompt from PDF Text
+                    Generate Prompt
                 </button>
             </div>
 
@@ -111,7 +110,26 @@
                     }
                 };
                 reader.readAsArrayBuffer(file);
-// ... existing code ... -->
+            } else {
+                 uploadStatus.textContent = 'Please select a valid PDF file.';
+            }
+        };
+        
+        pdfDropzone.addEventListener('click', () => pdfUploadInput.click());
+        pdfUploadInput.addEventListener('change', (e) => handleFile(e.target.files[0]));
+
+        // Drag and drop functionality
+        pdfDropzone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            pdfDropzone.classList.add('dragover');
+        });
+        pdfDropzone.addEventListener('dragleave', () => pdfDropzone.classList.remove('dragover'));
+        pdfDropzone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            pdfDropzone.classList.remove('dragover');
+            handleFile(e.dataTransfer.files[0]);
+        });
+        
         const generateBtn = document.getElementById('generateBtn');
         const outputContainer = document.getElementById('outputContainer');
         const promptOutput = document.getElementById('promptOutput');
@@ -172,5 +190,4 @@ The generated file **must** meet these technical specifications:
     </script>
 </body>
 </html>
-
 
