@@ -37,18 +37,18 @@
                     </div>
                 </fieldset>
 
-                <!-- Step 2: PDF Upload -->
+                <!-- Step 2: Add Source Content -->
                 <fieldset>
-                    <legend class="text-2xl font-semibold mb-4 border-b pb-2 w-full">2. Upload Quiz PDF</legend>
+                    <legend class="text-2xl font-semibold mb-4 border-b pb-2 w-full">2. Add Source Content</legend>
                     <div id="pdf-dropzone" class="p-8 text-center rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors">
                         <input type="file" id="pdfUpload" class="hidden" accept="application/pdf">
-                        <p id="pdf-upload-text" class="text-gray-600">Drag & drop your PDF here, or click to select a file.</p>
+                        <p id="pdf-upload-text" class="text-gray-600">**Optional:** Drag & drop a PDF to auto-fill the text box below.</p>
                         <p id="pdf-upload-status" class="font-medium text-indigo-700 mt-2"></p>
                     </div>
-                    <div class="mt-4">
-                         <label for="extractedText" class="block text-lg font-medium text-gray-700">Extracted Text</label>
-                         <p class="text-sm text-gray-500 mb-2">The text from your PDF will appear here. Review it before generating the prompt.</p>
-                         <textarea id="extractedText" readonly class="w-full h-48 p-3 bg-gray-50 border rounded-lg shadow-inner" placeholder="Waiting for PDF..."></textarea>
+                    <div class="mt-6">
+                         <label for="sourceText" class="block text-lg font-medium text-gray-700">Quiz Content</label>
+                         <p class="text-sm text-gray-500 mb-2">Paste your quiz content here, or upload a PDF to fill this box automatically.</p>
+                         <textarea id="sourceText" class="w-full h-64 p-3 bg-white border border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500" placeholder="Paste the full text of your quiz, including questions and the answer key, right here..."></textarea>
                     </div>
                 </fieldset>
             </form>
@@ -82,14 +82,14 @@
         const pdfDropzone = document.getElementById('pdf-dropzone');
         const uploadText = document.getElementById('pdf-upload-text');
         const uploadStatus = document.getElementById('pdf-upload-status');
-        const extractedTextArea = document.getElementById('extractedText');
+        const sourceTextArea = document.getElementById('sourceText');
 
         // --- PDF Processing Logic ---
         const handleFile = (file) => {
             if (file && file.type === 'application/pdf') {
                 uploadStatus.textContent = `Processing "${file.name}"...`;
                 uploadText.classList.add('hidden');
-                extractedTextArea.value = 'Reading PDF...';
+                sourceTextArea.value = 'Reading PDF...';
                 
                 const reader = new FileReader();
                 reader.onload = async (event) => {
@@ -101,36 +101,16 @@
                             const textContent = await page.getTextContent();
                             allText += textContent.items.map(item => item.str).join(' ') + '\n\n';
                         }
-                        extractedTextArea.value = allText.trim();
+                        sourceTextArea.value = allText.trim();
                         uploadStatus.textContent = `Successfully extracted text from "${file.name}"!`;
                     } catch (error) {
                         console.error('Error parsing PDF:', error);
-                        extractedTextArea.value = 'Error: Could not read the PDF file.';
+                        sourceTextArea.value = 'Error: Could not read the PDF file.';
                         uploadStatus.textContent = 'Failed to process PDF.';
                     }
                 };
                 reader.readAsArrayBuffer(file);
-            } else {
-                 uploadStatus.textContent = 'Please select a valid PDF file.';
-            }
-        };
-        
-        pdfDropzone.addEventListener('click', () => pdfUploadInput.click());
-        pdfUploadInput.addEventListener('change', (e) => handleFile(e.target.files[0]));
-
-        // Drag and drop functionality
-        pdfDropzone.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            pdfDropzone.classList.add('dragover');
-        });
-        pdfDropzone.addEventListener('dragleave', () => pdfDropzone.classList.remove('dragover'));
-        pdfDropzone.addEventListener('drop', (e) => {
-            e.preventDefault();
-            pdfDropzone.classList.remove('dragover');
-            handleFile(e.dataTransfer.files[0]);
-        });
-
-        // --- Prompt Generation Logic ---
+// ... existing code ... -->
         const generateBtn = document.getElementById('generateBtn');
         const outputContainer = document.getElementById('outputContainer');
         const promptOutput = document.getElementById('promptOutput');
@@ -138,10 +118,10 @@
         generateBtn.addEventListener('click', () => {
             const quizTitle = document.getElementById('quizTitle').value;
             const quizDescription = document.getElementById('quizDescription').value;
-            const pdfText = extractedTextArea.value;
+            const sourceText = sourceTextArea.value;
 
-            if (!quizTitle || !pdfText.trim() || pdfText.startsWith('Waiting')) {
-                alert('Please provide a quiz title and upload a PDF to extract text first.');
+            if (!quizTitle || !sourceText.trim()) {
+                alert('Please provide a quiz title and add your quiz content in the text box.');
                 return;
             }
 
@@ -160,7 +140,7 @@ Generate a single, self-contained HTML file for a student quiz based on the text
 Use the following text to create the quiz questions. Extract the questions, options, and identify the correct answers directly from this text. Generate a variety of question types (multiple-choice, multiple-select, fill-in-the-blank) based on the content.
 
 \`\`\`
-${pdfText}
+${sourceText}
 \`\`\`
 
 ---
@@ -191,3 +171,4 @@ The generated file **must** meet these technical specifications:
     </script>
 </body>
 </html>
+
