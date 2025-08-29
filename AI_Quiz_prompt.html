@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Quiz Builder</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- PDF.js Library: This is required to read PDF files in the browser -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.min.js"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        #pdf-dropzone { border: 2px dashed #9ca3af; }
+        #pdf-dropzone.dragover { border-color: #4f46e5; background-color: #e0e7ff; }
+    </style>
+</head>
+<body class="bg-gray-100">
+
+    <div class="container mx-auto max-w-5xl px-4 py-12">
+        <header class="text-center mb-10">
+            <h1 class="text-4xl font-bold text-gray-900">Smart Quiz Builder</h1>
+            <p class="text-lg text-gray-600 mt-2">Create an AI prompt by uploading a PDF of your quiz.</p>
+        </header>
+
+        <div class="bg-white p-8 rounded-2xl shadow-lg">
+            <form id="promptForm" class="space-y-8">
+                <!-- Step 1: Quiz Details -->
+                <fieldset class="space-y-4">
+                    <legend class="text-2xl font-semibold mb-4 border-b pb-2 w-full">1. Quiz Details</legend>
+                    <div>
+                        <label for="quizTitle" class="block text-lg font-medium text-gray-700">Quiz Title</label>
+                        <input type="text" id="quizTitle" class="mt-1 block w-full p-3 border border-gray-300 rounded-lg shadow-sm" placeholder="e.g., The Rock Cycle" required>
+                    </div>
+                    <div>
+                        <label for="quizDescription" class="block text-lg font-medium text-gray-700">Quiz Description</label>
+                        <input type="text" id="quizDescription" class="mt-1 block w-full p-3 border border-gray-300 rounded-lg shadow-sm" placeholder="e.g., A quiz on igneous, sedimentary, and metamorphic rocks." required>
+                    </div>
+                </fieldset>
+
+                <!-- Step 2: PDF Upload -->
+                <fieldset>
+                    <legend class="text-2xl font-semibold mb-4 border-b pb-2 w-full">2. Upload Quiz PDF</legend>
+                    <div id="pdf-dropzone" class="p-8 text-center rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors">
+                        <input type="file" id="pdfUpload" class="hidden" accept="application/pdf">
+                        <p id="pdf-upload-text" class="text-gray-600">Drag & drop your PDF here, or click to select a file.</p>
+                        <p id="pdf-upload-status" class="font-medium text-indigo-700 mt-2"></p>
+                    </div>
+                    <div class="mt-4">
+                         <label for="extractedText" class="block text-lg font-medium text-gray-700">Extracted Text</label>
+                         <p class="text-sm text-gray-500 mb-2">The text from your PDF will appear here. Review it before generating the prompt.</p>
+                         <textarea id="extractedText" readonly class="w-full h-48 p-3 bg-gray-50 border rounded-lg shadow-inner" placeholder="Waiting for PDF..."></textarea>
+                    </div>
+                </fieldset>
+            </form>
+
+            <!-- Generate Button -->
+            <div class="text-center pt-8 mt-8 border-t">
+                <button id="generateBtn" class="bg-indigo-600 text-white font-bold py-3 px-8 rounded-lg hover:bg-indigo-700 transition-transform transform hover:scale-105">
+                    Generate Prompt from PDF Text
+                </button>
+            </div>
+
+            <!-- Output Section -->
+            <div id="outputContainer" class="hidden mt-10">
+                <h2 class="text-2xl font-semibold mb-4">Your Generated AI Prompt:</h2>
+                <div class="bg-gray-50 p-6 rounded-lg border">
+                    <pre id="promptOutput" class="whitespace-pre-wrap text-gray-800 text-sm leading-relaxed"></pre>
+                </div>
+                <button id="copyBtn" class="mt-4 bg-gray-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-gray-700">
+                    Copy to Clipboard
+                </button>
+                <p id="copyFeedback" class="text-green-600 font-medium mt-2 hidden">Copied!</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Set the worker URL for the PDF.js library
+        pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.worker.min.js`;
+        
+        const pdfUploadInput = document.getElementById('pdfUpload');
+        const pdfDropzone = document.getElementById('pdf-dropzone');
+        const uploadText = document.getElementById('pdf-upload-text');
+        const uploadStatus = document.getElementById('pdf-upload-status');
+        const extractedTextArea = document.getElementById('extractedText');
+
+        // --- PDF Processing Logic ---
+        const handleFile = (file) => {
+            if (file && file.type === 'application/pdf') {
+                uploadStatus.textContent = `Processing "${file.name}"...`;
+                uploadText.classList.add('hidden');
+                extractedTextArea.value = 'Reading PDF...';
+                
+                const reader = new FileReader();
+                reader.onload = async (event) => {
+                    try {
+                        const pdf = await pdfjsLib.getDocument(event.target.result).promise;
+                        let allText = '';
+                        for (let i = 1; i <= pdf.numPages; i++) {
+                            const page = await pdf.getPage(i);
+                            const textContent = await page.getTextContent();
+                            allText += textContent.items.map(item => item.str).join(' ') + '\n\n';
+                        }
+                        extractedTextArea.value = allText.trim();
+                        uploadStatus.textContent = `Successfully extracted text from "${file.name}"!`;
+                    } catch (error) {
+                        console.error('Error parsing PDF:', error);
+                        extractedTextArea.value = 'Error: Could not read the PDF file.';
+                        uploadStatus.textContent = 'Failed to process PDF.';
+                    }
+                };
+                reader.readAsArrayBuffer(file);
+            } else {
+                 uploadStatus.textContent = 'Please select a valid PDF file.';
+            }
+        };
+        
+        pdfDropzone.addEventListener('click', () => pdfUploadInput.click());
+        pdfUploadInput.addEventListener('change', (e) => handleFile(e.target.files[0]));
+
+        // Drag and drop functionality
+        pdfDropzone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            pdfDropzone.classList.add('dragover');
+        });
+        pdfDropzone.addEventListener('dragleave', () => pdfDropzone.classList.remove('dragover'));
+        pdfDropzone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            pdfDropzone.classList.remove('dragover');
+            handleFile(e.dataTransfer.files[0]);
+        });
+
+        // --- Prompt Generation Logic ---
+        const generateBtn = document.getElementById('generateBtn');
+        const outputContainer = document.getElementById('outputContainer');
+        const promptOutput = document.getElementById('promptOutput');
+        
+        generateBtn.addEventListener('click', () => {
+            const quizTitle = document.getElementById('quizTitle').value;
+            const quizDescription = document.getElementById('quizDescription').value;
+            const pdfText = extractedTextArea.value;
+
+            if (!quizTitle || !pdfText.trim() || pdfText.startsWith('Waiting')) {
+                alert('Please provide a quiz title and upload a PDF to extract text first.');
+                return;
+            }
+
+            const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw91uVv5yzrMqAyO0UKgM2Qi8JDjMRzByBS5Qa6tmFQWsHoykMcjqXK3vo15SUE76vZtQ/exec';
+
+            const finalPrompt = `
+Generate a single, self-contained HTML file for a student quiz based on the text provided below. The file must use Tailwind CSS and include inline JavaScript for all functionality. It must be structured to send results to a pre-existing Google Apps Script.
+
+### 1. Quiz Details
+- **Quiz Title:** ${quizTitle}
+- **HTML Page Title:** ${quizTitle} Quiz
+- **Quiz Description:** ${quizDescription}
+
+---
+### 2. Source Content
+Use the following text to create the quiz questions. Extract the questions, options, and identify the correct answers directly from this text. Generate a variety of question types (multiple-choice, multiple-select, fill-in-the-blank) based on the content.
+
+\`\`\`
+${pdfText}
+\`\`\`
+
+---
+### 3. JavaScript and HTML Requirements
+The generated file **must** meet these technical specifications:
+
+1.  **HTML Structure:** The questions should be inside a \`<form id="quizForm">\`.
+2.  **Student Name Input:** Require the student to enter their full name.
+3.  **Data Submission Object:** Create a JavaScript object named \`dataToSend\` with these exact keys: \`quizTitle\`, \`timestamp\`, \`studentName\`, \`score\`, and \`incorrectQuestions\`.
+4.  **Quiz Title Value:** The \`quizTitle\` key **must** have the value "${quizTitle}".
+5.  **Google Apps Script URL:** The \`fetch\` request **must** post the data to this specific URL: \`${SCRIPT_URL}\`
+6.  **User Feedback:** The page must show "Saving data..." during submission, and a clear "Your results have been saved successfully!" message upon success.
+`;
+            promptOutput.textContent = finalPrompt.trim();
+            outputContainer.classList.remove('hidden');
+            window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+        });
+
+        // --- Copy to Clipboard Logic ---
+        const copyBtn = document.getElementById('copyBtn');
+        const copyFeedback = document.getElementById('copyFeedback');
+        copyBtn.addEventListener('click', () => {
+            navigator.clipboard.writeText(promptOutput.textContent).then(() => {
+                copyFeedback.classList.remove('hidden');
+                setTimeout(() => copyFeedback.classList.add('hidden'), 2000);
+            });
+        });
+    </script>
+</body>
+</html>
