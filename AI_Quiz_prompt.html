@@ -19,7 +19,7 @@
     <div class="container mx-auto max-w-5xl px-4 py-12">
         <header class="text-center mb-10">
             <h1 class="text-4xl font-bold text-gray-900">Smart Quiz Builder</h1>
-            <p class="text-lg text-gray-600 mt-2">Create an AI prompt by uploading a PDF of your quiz.</p>
+            <p class="text-lg text-gray-600 mt-2">Create an AI prompt by uploading a PDF or pasting text.</p>
         </header>
 
         <div class="bg-white p-8 rounded-2xl shadow-lg">
@@ -144,6 +144,7 @@
                 return;
             }
 
+            // This URL now points to your latest, smartest script.
             const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw91uVv5yzrMqAyO0UKgM2Qi8JDjMRzByBS5Qa6tmFQWsHoykMcjqXK3vo15SUE76vZtQ/exec';
 
             const finalPrompt = `
